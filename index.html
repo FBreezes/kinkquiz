@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Questionnaire</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- CORE LAYOUT & THEME --- */
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden; 
+        }
+
+        /* --- UI COMPONENT: LOADING SPINNER --- */
+        .loader {
+            border: 2px solid #1e293b;
+            border-radius: 50%;
+            border-top: 2px solid #38bdf8;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- UI COMPONENT: FORMS & INPUTS --- */
+        input, select, textarea {
+            background-color: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            color: #f1f5f9 !important;
+        }
+
+        /* --- REFINED GRADIENT DEFINITIONS (More Saturated) --- */
+        /* Pink: #f472b6 (Pink 400), Blue: #38bdf8 (Sky 400) */
+        .gradient-text {
+            background: linear-gradient(135deg, #f472b6 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .gradient-btn {
+            background: linear-gradient(135deg, #f472b6 0%, #38bdf8 100%);
+            color: #020617 !important;
+        }
+
+        .gradient-border {
+            border-image: linear-gradient(135deg, #f472b6 0%, #38bdf8 100%) 1;
+        }
+
+        /* --- INPUT FOCUS & OUTLINE THEMES --- */
+        input:focus, select:focus, textarea:focus {
+            outline: none !important;
+            border: 1px solid transparent !important;
+            background-image: linear-gradient(#0f172a, #0f172a), linear-gradient(135deg, #f472b6 0%, #38bdf8 100%) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+            box-shadow: 0 0 15px rgba(244, 114, 182, 0.2) !important;
+        }
+
+        /* --- STEP SYSTEM: ANIMATION & TRANSITIONS --- */
+        .step-container {
+            display: flex;
+            transition: transform 0.7s cubic-bezier(0.85, 0, 0.15, 1);
+            width: 600%; 
+            height: 100vh;
+        }
+        .step-page {
+            width: 100vw;
+            height: 100vh;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 4rem 1rem;
+            overflow-y: auto; 
+        }
+        .step-content {
+            width: 100%;
+            max-width: 1200px; 
+        }
+        
+        /* --- PROGRESS TRACKER: GRADIENT UPDATE --- */
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #1e293b;
+            transition: all 0.3s ease;
+        }
+        .progress-dot.active {
+            background: linear-gradient(135deg, #f472b6 0%, #38bdf8 100%);
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* --- STEP 2: INTEREST CARDS --- */
+        .choice-card {
+            position: relative;
+            height: 120px;
+            border-radius: 20px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            backface-visibility: hidden;
+            transform: translateZ(0);
+        }
+        .choice-card img {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: brightness(0.4) blur(5px);
+            transition: filter 0.3s ease, transform 0.3s ease;
+            will-change: filter;
+        }
+        .choice-card:hover img {
+            filter: brightness(0.6) blur(2px);
+        }
+        /* Selection Outline uses Gradient */
+        .choice-card.selected { 
+            border: 2px solid transparent;
+            background-image: linear-gradient(#020617, #020617), linear-gradient(135deg, #f472b6 0%, #38bdf8 100%);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            transform: scale(1.02); 
+        }
+        .choice-card.selected img { filter: brightness(0.9) blur(0); }
+
+        /* --- STEP 3: PREFERENCE CARDS --- */
+        .pref-card {
+            background: #0f172a;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+            transition: all 0.3s ease;
+        }
+        .pref-img-wrapper {
+            position: relative;
+            height: 240px;
+            overflow: hidden;
+        }
+        .pref-img-wrapper img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: filter 0.5s ease;
+            will-change: filter;
+        }
+        .pref-card.censored .pref-img-wrapper img {
+            filter: blur(25px) brightness(0.3);
+        }
+
+        /* --- PREFERENCE BUTTONS: GRADIENT SELECTED STATE --- */
+        .pref-btn {
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 14px;
+            transition: all 0.2s;
+            flex: 1;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+        .pref-btn:active { transform: scale(0.95); }
+        .pref-btn.active { 
+            background: linear-gradient(135deg, #f472b6 0%, #38bdf8 100%); 
+            color: #020617; 
+        }
+
+        .no-thanks-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            background: #1e293b;
+            color: #94a3b8;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+        .no-thanks-btn.active {
+            background: #f43f5e1a;
+            color: #f43f5e;
+            border-color: #f43f5e33;
+        }
+
+        .modal-overlay {
+            background-color: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(12px);
+        }
+
+        .result-badge {
+            background: linear-gradient(135deg, #f472b6 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <!-- ADMIN OVERLAY: Alerts when Script URL isn't configured -->
+    <div id="configWarning" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs text-center backdrop-blur-sm">
+        <strong>Admin Note:</strong> Google Script URL missing.
+    </div>
+
+    <!-- UI COMPONENT: CONFIRMATION MODAL -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center">
+            <h3 class="text-xl font-bold text-white mb-3">Ready to submit?</h3>
+            <p class="text-slate-400 mb-8 text-sm">All your answers will be sent to Breezes to do naughty things with.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="handleActualSubmit()" class="w-full gradient-btn font-bold py-4 rounded-2xl transition-all">Yes, Submit Now</button>
+                <button onclick="closeModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-4 rounded-2xl transition-all">Go Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BACKGROUND EFFECTS -->
+    <div class="fixed inset-0 overflow-hidden -z-10">
+        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px]"></div>
+        <div class="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-pink-500/5 rounded-full blur-[120px]"></div>
+    </div>
+
+    <form id="sheetForm">
+        <div id="stepWrapper" class="step-container">
+            
+            <!-- STEP 1: Personal Info -->
+            <div class="step-page">
+                <div class="step-content max-w-md pt-20">
+                    <div class="mb-12 text-center">
+                        <img src="https://i.imghippo.com/files/SDP9435ZAg.png" alt="Logo" class="w-16 h-16 mx-auto rounded-2xl mb-6 shadow-2xl border border-slate-800">
+                        <h1 class="text-4xl font-extrabold mb-2 gradient-text">Welcome</h1>
+                        <p class="text-slate-500">Thanks for checking my link!</p>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold tracking-[0.2em] text-slate-500 mb-3 uppercase">Who are you?</label>
+                            <input type="text" id="userName" name="userName" required placeholder="Type your name here..."
+                                class="w-full px-6 py-4 rounded-2xl text-lg transition-all">
+                        </div>
+                        <button type="button" onclick="nextStep(1)" class="w-full gradient-btn font-bold py-5 rounded-2xl transition-all shadow-xl shadow-pink-900/20 flex items-center justify-center gap-3 group">
+                            Continue
+                            <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Interests -->
+            <div class="step-page">
+                <div class="step-content">
+                    <div class="mb-10 text-center">
+                        <h2 class="text-3xl font-bold mb-2 gradient-text">Kinks</h2>
+                        <p class="text-slate-500">Select any that you would enjoy in an RP.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                        <div class="choice-card" onclick="toggleChoice(this, 'Furries')">
+                            <img loading="lazy" src="https://static1.e621.net/data/c9/b8/c9b841c10a032a6d3e2e9d0bb74c5b7d.jpg?auto=format&fit=crop&w=200&q=75" alt="Furries">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Furries</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Humans')">
+                            <img loading="lazy" src="https://img2.gelbooru.com/images/3f/dc/3fdc8124fd04c03a70969cebd498b0d8.jpg?auto=format&fit=crop&w=200&q=75" alt="Humans">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Humans</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Kemonomimi')">
+                            <img loading="lazy" src="https://static1.e621.net/data/a4/ae/a4ae6df7a50c68a2e3e88c0ff7a9ae9a.png?auto=format&fit=crop&w=200&q=75" alt="Kemonomimi">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Kemonomimi</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Monsters')">
+                            <img loading="lazy" src="https://static1.e621.net/data/8b/e8/8be872a18ee3a85cd8b18bb1f16c450b.jpg?auto=format&fit=crop&w=200&q=75" alt="Monsters">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Monsters</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Clankers')">
+                            <img loading="lazy" src="https://static1.e621.net/data/ed/38/ed3809b7ec287c961cd6e967dd38105a.jpg?auto=format&fit=crop&w=200&q=75" alt="Clankers">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Clankers</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Hypno')">
+                            <img loading="lazy" src="https://t.furaffinity.net/51933137@400-1682567020.jpg?auto=format&fit=crop&w=200&q=75" alt="Hypno">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Hypno</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Sissification')">
+                            <img loading="lazy" src="https://static1.e621.net/data/59/d4/59d431b36e18e8a679290fa28f7ab4fe.png?auto=format&fit=crop&w=200&q=75" alt="Sissification">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Sissification</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Chastity')">
+                            <img loading="lazy" src="https://static1.e621.net/data/66/3e/663ed21fde9a1203b749d644118792d6.jpg?auto=format&fit=crop&w=200&q=75" alt="Chastity">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Chastity</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Pegging')">
+                            <img loading="lazy" src="https://static1.e621.net/data/f0/64/f064bd058aa45822535517cff3e766c1.png?auto=format&fit=crop&w=200&q=75" alt="Pegging">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Pegging</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Petplay')">
+                            <img loading="lazy" src="https://static1.e621.net/data/f2/f6/f2f68e43f7a69ba547e61cbd7ea57635.png?auto=format&fit=crop&w=200&q=75" alt="Petplay">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Petplay</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Hyper')">
+                            <img loading="lazy" src="https://static1.e621.net/data/91/c4/91c45860817bcd55ae64b3711a1ab620.jpg?auto=format&fit=crop&w=200&q=75" alt="Hyper">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Hyper</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Musky')">
+                            <img loading="lazy" src="https://static1.e621.net/data/94/70/9470134bfe49b8eae64dc2f6b043323c.jpg?auto=format&fit=crop&w=200&q=75" alt="Musky">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Musky</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Bukkake')">
+                            <img loading="lazy" src="https://static1.e621.net/data/7c/1a/7c1ac7643de5450de379066999cfbcbc.png?auto=format&fit=crop&w=200&q=75" alt="Bukkake">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Bukkake</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Feet/Paws')">
+                            <img loading="lazy" src="https://static1.e621.net/data/3b/c6/3bc6b96328535001a134fd5fa9fd6825.png?auto=format&fit=crop&w=200&q=75" alt="Feet/Paws">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Feet/Paws</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Public Use')">
+                            <img loading="lazy" src="https://static1.e621.net/data/51/39/51399fdbfd0766fef65f3757e586a2f1.jpg?auto=format&fit=crop&w=200&q=75" alt="Public Use">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Public Use</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Diapers')">
+                            <img loading="lazy" src="https://static1.e621.net/data/f3/74/f374d12136f9faeaf28fb315ea7da8a9.jpg?auto=format&fit=crop&w=200&q=75" alt="Diapers">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Diapers</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Infantilisation')">
+                            <img loading="lazy" src="https://static1.e621.net/data/0c/65/0c65b93951eb1e96ab8b2dd572087505.png?auto=format&fit=crop&w=200&q=75" alt="Infantilisation">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Infantilisation</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Watersports')">
+                            <img loading="lazy" src="https://static1.e621.net/data/9d/cf/9dcf14c07b9166c5984e2b553a6c71aa.png?auto=format&fit=crop&w=200&q=75" alt="Watersports">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Watersports</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Messing')">
+                            <img loading="lazy" src="https://static1.e621.net/data/eb/62/eb62cc6af97e2d29586b962141f44cd9.png?auto=format&fit=crop&w=200&q=75" alt="Messing">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Messing</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Age Regression')">
+                            <img loading="lazy" src="https://static1.e621.net/data/bf/cf/bfcf6625bfcd43263a39400d835e2ac0.jpg?auto=format&fit=crop&w=200&q=75" alt="Age Regression">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Age Regression</span>
+                        </div>
+                        <div class="choice-card" onclick="toggleChoice(this, 'Feral')">
+                            <img loading="lazy" src="https://t.furaffinity.net/54946329@300-1703647207.jpg?auto=format&fit=crop&w=200&q=75" alt="Feral">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Feral</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Inanimate')">
+                            <img loading="lazy" src="https://t.furaffinity.net/33834073@200-1573770301.jpg?auto=format&fit=crop&w=200&q=75" alt="Inanimate">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Inanimate</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Sizeplay')">
+                            <img loading="lazy" src="https://static1.e621.net/data/d9/f5/d9f59204deeb9c8381b55288e3690970.png?auto=format&fit=crop&w=200&q=75" alt="Sizeplay">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Sizeplay</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Weight Gain')">
+                            <img loading="lazy" src="https://static1.e621.net/data/6b/15/6b15874fe98a3b3b025bf4c2daaa6151.jpg?auto=format&fit=crop&w=200&q=75" alt="Weight Gain">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Weight Gain</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Absorption')">
+                            <img loading="lazy" src="https://static1.e621.net/data/87/76/87761f6518ecda59ece368fde4048a94.png?auto=format&fit=crop&w=200&q=75" alt="Absorption">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Absorption</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Dronification')">
+                            <img loading="lazy" src="https://static1.e621.net/data/80/36/8036a606b9d15ef9c5b68f2449df45f4.png?auto=format&fit=crop&w=200&q=75" alt="Dronification">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Dronification</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Identity Death')">
+                            <img loading="lazy" src="https://static1.e621.net/data/d7/49/d74982a970d25388d6d85d45a69d6e00.jpg?auto=format&fit=crop&w=200&q=75" alt="Identity Death">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Identity Death</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Vore')">
+                            <img loading="lazy" src="https://static1.e621.net/data/94/cc/94ccb06a18f4bb31f48d9d0cb8fc550a.jpg?auto=format&fit=crop&w=200&q=75" alt="Vore">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Vore</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Oviposition')">
+                            <img loading="lazy" src="https://static1.e621.net/data/94/cb/94cb69a694736092a2b2467c8a343526.jpg?auto=format&fit=crop&w=200&q=75" alt="Oviposition">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Oviposition</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Ear Penetration')">
+                            <img loading="lazy" src="https://static1.e621.net/data/6d/ee/6deeec9f310b18b93e8fdcb0af23fa85.jpg?auto=format&fit=crop&w=200&q=75" alt="Ear Penetration">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Ear Penetration</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Degradation')">
+                            <img loading="lazy" src="https://static1.e621.net/data/78/79/787962cf2814813af42b03dbcb108003.png?auto=format&fit=crop&w=200&q=75" alt="Degradation">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Degradation</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Noncon')">
+                            <img loading="lazy" src="https://static1.e621.net/data/41/3c/413ca36f65b54749e022ecbf4c3ecb03.png?auto=format&fit=crop&w=200&q=75" alt="Noncon">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Noncon</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Physical Abuse')">
+                            <img loading="lazy" src="https://static1.e621.net/data/ab/a3/aba374080d51c243483d1ab7f512b72b.jpg?auto=format&fit=crop&w=200&q=75" alt="Physical Abuse">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Physical Abuse</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Farting')">
+                            <img loading="lazy" src="https://static1.e621.net/data/d0/31/d031e28d8d0c8e2a5f5f8578d56930ca.png?auto=format&fit=crop&w=200&q=75" alt="Farting">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Farting</span>
+                        </div>
+                         <div class="choice-card" onclick="toggleChoice(this, 'Ballbusting')">
+                            <img loading="lazy" src="https://static1.e621.net/data/f3/fa/f3fa8fe5684468917631c59489d9409b.png?auto=format&fit=crop&w=200&q=75" alt="Ballbusting">
+                            <span class="absolute bottom-3 left-3 font-bold text-xs uppercase tracking-wider">Ballbusting</span>
+                        </div>
+
+                    </div>
+
+                    <div class="max-w-2xl mx-auto mb-10">
+                        <label class="block text-xs font-bold tracking-[0.2em] text-slate-500 mb-3 uppercase text-center">What did I miss?</label>
+                        <input type="text" id="interestWriteIn" placeholder="List as many kinks as you like - prove you're the lewdest..." 
+                               class="w-full px-6 py-4 rounded-2xl text-md transition-all">
+                    </div>
+
+                    <div class="flex gap-4 max-w-md mx-auto">
+                        <button type="button" onclick="nextStep(0)" class="w-1/3 bg-slate-900 text-slate-400 font-bold py-5 rounded-2xl">Back</button>
+                        <button type="button" onclick="nextStep(2)" class="w-2/3 gradient-btn font-bold py-5 rounded-2xl">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Style Preferences -->
+            <div class="step-page">
+                <div class="step-content">
+                    <div class="mb-10 text-center">
+                        <h2 class="text-3xl font-bold mb-2 gradient-text">This you?</h2>
+                        <p class="text-slate-500" id="styleSubtitle">Choose whether you'd rather be the character on the left or the right.</p>
+                    </div>
+
+                    <div id="prefContainer" class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12"></div>
+
+                    <div class="flex gap-4 max-w-md mx-auto">
+                        <button type="button" onclick="nextStep(1)" class="w-1/3 bg-slate-900 text-slate-400 font-bold py-5 rounded-2xl">Back</button>
+                        <button type="button" onclick="nextStep(3)" class="w-2/3 gradient-btn font-bold py-5 rounded-2xl">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: Detailed Questions -->
+            <div class="step-page">
+                <div class="step-content max-w-lg">
+                    <div class="mb-10 text-center pt-20">
+                        <h2 class="text-3xl font-bold mb-2 gradient-text">What do you think?</h2>
+                        <p class="text-slate-500">Help me get you right.</p>
+                    </div>
+                    
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-xs font-bold tracking-[0.2em] text-slate-500 mb-3 uppercase">How many bottoms have you made squirm recently?</label>
+                            <input type="text" id="qDom" placeholder="Bonus points if you name & shame 'em!" class="w-full px-6 py-4 rounded-2xl text-lg transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold tracking-[0.2em] text-slate-500 mb-3 uppercase">How many porn tabs do you open on an average day off?</label>
+                            <input type="text" id="qHorny" placeholder="And why haven't you sent them to me?" class="w-full px-6 py-4 rounded-2xl text-lg transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold tracking-[0.2em] text-slate-500 mb-3 uppercase">How thicc is your oc in lbs?</label>
+                            <input type="text" id="qThicc" placeholder="Or describe it, if that's easier." class="w-full px-6 py-4 rounded-2xl text-lg transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold tracking-[0.2em] text-slate-500 mb-3 uppercase">How many discord friends do you have?</label>
+                            <input type="text" id="qFriends" placeholder="Friends > All - and it's listed at the top." class="w-full px-6 py-4 rounded-2xl text-lg transition-all">
+                        </div>
+                        <div class="flex gap-4 pt-6">
+                            <button type="button" onclick="nextStep(2)" class="w-1/3 bg-slate-900 text-slate-400 font-bold py-5 rounded-2xl">Back</button>
+                            <button type="button" onclick="nextStep(4)" class="w-2/3 gradient-btn font-bold py-5 rounded-2xl">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 5: Attachments & Final Thoughts -->
+            <div class="step-page">
+                <div class="step-content max-w-lg pt-20">
+                    <div class="mb-8 text-center">
+                        <h2 class="text-3xl font-bold mb-2 gradient-text">Design your card</h2>
+                        <p class="text-slate-500">Give me the best image and a short description to use for your top trumps card. Or don't, and I'll handle it myself.</p>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <label for="imageInput" id="dropZone" class="group relative flex flex-col items-center justify-center w-full h-32 rounded-3xl cursor-pointer bg-slate-900/50 border-2 border-dashed border-slate-800 hover:border-pink-500/50 transition-all">
+                            <div class="flex flex-col items-center justify-center p-4 text-center">
+                                <p id="fileNameDisplay" class="text-sm text-slate-400 font-medium">Upload Attachment (Max 5MB)</p>
+                            </div>
+                            <input id="imageInput" type="file" name="imageFile" accept="image/*" class="hidden" />
+                        </label>
+
+                        <div>
+                            <textarea id="feedback" name="feedback" rows="4" placeholder="Give me a short blurb for your character & what they're like..."
+                                class="w-full px-6 py-4 rounded-3xl text-lg transition-all resize-none"></textarea>
+                        </div>
+                        
+                        <div id="statusMessage" class="hidden p-4 rounded-2xl text-sm text-center font-medium"></div>
+
+                        <div class="flex gap-4">
+                            <button type="button" id="backBtn" onclick="nextStep(3)" class="w-1/3 bg-slate-900 text-slate-400 font-bold py-5 rounded-2xl">Back</button>
+                            <button type="submit" id="submitBtn" class="w-2/3 gradient-btn font-bold py-5 rounded-2xl shadow-xl shadow-pink-900/40 flex items-center justify-center gap-3">
+                                Submit Entry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 6: Buzzfeed-style Results -->
+            <div class="step-page">
+                <div class="step-content max-w-2xl pt-20">
+                    <div class="bg-slate-900/40 border border-slate-800 p-8 md:p-12 rounded-[40px] text-center shadow-2xl">
+                        <div id="resultLoader" class="flex flex-col items-center gap-4 py-10">
+                            <div class="loader !w-12 !h-12 !border-4 !border-t-pink-400"></div>
+                            <p class="text-slate-400 animate-pulse">Analyzing your profile...</p>
+                        </div>
+
+                        <div id="resultDisplay" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                            <span class="text-xs font-black uppercase tracking-[0.3em] text-pink-400 mb-4 block">Your Result</span>
+                            <h2 id="resultTitle" class="text-5xl font-black mb-6 result-badge">Calculating...</h2>
+                            <p id="resultDesc" class="text-slate-400 text-lg mb-8 leading-relaxed">Wait a moment while we finish processing.</p>
+                            
+                            <div class="bg-slate-800/50 p-6 rounded-3xl text-left mb-8">
+                                <h4 class="text-sm font-bold text-slate-300 mb-3 uppercase tracking-wider">Your tags:</h4>
+                                <div id="summaryChips" class="flex flex-wrap gap-2">
+                                    <!-- Dynamic Chips -->
+                                </div>
+                            </div>
+
+                            <button type="button" onclick="location.reload()" class="text-pink-400 font-bold hover:underline">Start Over</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+
+    <!-- FOOTER PROGRESS BAR -->
+    <div id="progressBar" class="fixed bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-50">
+        <div class="progress-dot active" id="dot0"></div>
+        <div class="progress-dot" id="dot1"></div>
+        <div class="progress-dot" id="dot2"></div>
+        <div class="progress-dot" id="dot3"></div>
+        <div class="progress-dot" id="dot4"></div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwM5HQKMzlGEn0s5kzuQF8E5WjiyQJpaA0F_gvghnGp6MloP2FJ3wMsQNAktQQcgspd/exec';
+        
+        // --- DOM REFERENCES ---
+        const form = document.getElementById('sheetForm');
+        const stepWrapper = document.getElementById('stepWrapper');
+        const submitBtn = document.getElementById('submitBtn');
+        const backBtn = document.getElementById('backBtn');
+        const statusMsg = document.getElementById('statusMessage');
+        const imageInput = document.getElementById('imageInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const dropZone = document.getElementById('dropZone');
+        const modal = document.getElementById('confirmModal');
+        const prefContainer = document.getElementById('prefContainer');
+        const forceMultiplier = "12ty";
+
+        // --- APP STATE ---
+        let currentStep = 0;
+        let selectedChoices = new Set();
+        let detailPrefs = {}; 
+        let isSubmitted = false;
+
+        // --- DATASET: STEP 3 STYLE CARDS ---
+        const styleCardsData = [
+            { category: 'Global', id: 'FneutMneut', img: 'https://static1.e621.net/data/82/4c/824cc8ba4451678dfa48f8f8af7fbbef.jpg?auto=format&fit=crop&w=600' },
+            { category: 'Global', id: 'FdomMsub', img: 'https://static1.e621.net/data/ad/43/ad430a4f613acb4b5a5543f1698d40c7.jpg?auto=format&fit=crop&w=600' },
+            { category: 'Global', id: 'MdomFsub', img: 'https://static1.e621.net/data/ad/82/ad8220de22798eb06b550c9a298128ff.png?auto=format&fit=crop&w=600' },
+            { category: 'Global', id: 'RimHead', img: 'https://static1.e621.net/data/50/8c/508cbc9999a867e458abd3dc23a1605b.png?auto=format&fit=crop&w=600' },
+            { category: 'Global', id: 'MdomMsub', img: 'https://static1.e621.net/data/6f/f3/6ff30251d3d32b5de5498b3d04546d51.png?auto=format&fit=crop&w=600' },
+            { category: 'Global', id: 'FdomFsub', img: 'https://static1.e621.net/data/1d/46/1d462821e98d1ab0352365559c0df01f.jpg?auto=format&fit=crop&w=600' },
+            { category: 'Messing', id: 'MessySniff', img: 'https://static1.e621.net/data/58/6c/586ce7f18a677eab239412ea7831528c.jpg?auto=format&fit=crop&w=600' },
+            { category: 'Diapers', id: 'BratMommy', img: 'https://static1.e621.net/data/a5/92/a592da16e1cc15abd8b94a160a12cb5e.jpg?auto=format&fit=crop&w=600' },
+            { category: 'Infantilisation', id: 'MommyBaby', img: 'https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:gxwyhw6un46hixjfyupows2v/bafkreign7447uzbqbzi3yvohp5xfhs6a4h4t6esorz6aheoepcaja5zoxy@jpeg?auto=format&fit=crop&w=600' },
+            { category: 'Pegging', id: 'FpegMpeg', img: 'https://static1.e621.net/data/b7/43/b74369c7b52c21b36660510855afd2a2.jpg?auto=format&fit=crop&w=600' },
+            { category: 'Dronification', id: 'DroneSub', img: 'https://lh3.googleusercontent.com/pw/AP1GczMo5Ouh6nJUTx6tq_YhDqup8LHWa6GUEODsWvCBrdBFvvVQa9O2mK19ghpUt7zviOG9FOhu1URKHBP5AuK4YnkIx8GXoibfE3MW_8PBkYrbzQAxStToygQ1ffVh3IjUdcDeJ55Sg6tgKgl7oq-6-2BP=w1180-h1348-s-no-gm?auto=format&fit=crop&w=600' },
+            { category: 'Hypno', id: 'SalazSub', img: 'https://static1.e621.net/data/c0/4f/c04f4feaa832d1675bb6ebf4b560bc78.png?auto=format&fit=crop&w=600' },
+            { category: 'Musky', id: 'ButtSniffer', img: 'https://static1.e621.net/data/6e/8e/6e8e9be0ec0b6d36f14ae062cbbcbde0.png?auto=format&fit=crop&w=600' },
+            { category: 'Petplay', id: 'OwnerPet', img: 'https://static1.e621.net/data/d2/37/d237722f8cdda89b021ea42777664c7e.jpg?auto=format&fit=crop&w=600' }
+        ];
+
+
+        // --- CORE LOGIC: CHOICE MANAGEMENT ---
+        function toggleChoice(element, val) {
+            if (isSubmitted) return;
+            if (selectedChoices.has(val)) {
+                selectedChoices.delete(val);
+                element.classList.remove('selected');
+            } else {
+                selectedChoices.add(val);
+                element.classList.add('selected');
+            }
+            updatePrefCards();
+        }
+
+        // --- CORE LOGIC: DYNAMIC STEP 3 INJECTION ---
+        function updatePrefCards() {
+            prefContainer.innerHTML = '';
+            const filtered = styleCardsData.filter(card => 
+                card.category === 'Global' || selectedChoices.has(card.category)
+            );
+            
+            filtered.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'pref-card';
+                cardEl.id = card.id;
+                cardEl.innerHTML = `
+                    <div class="pref-img-wrapper">
+                        <img loading="lazy" src="${card.img}" alt="${card.id}">
+                    </div>
+                    <div class="p-5 space-y-4">
+                        
+                        <div class="pref-controls-main flex gap-2">
+                            <button type="button" class="pref-btn" onclick="togglePref(this, 'Left')">Left</button>
+                            <button type="button" class="pref-btn" onclick="togglePref(this, 'Right')">Right</button>
+                        </div>
+                        <button type="button" class="no-thanks-btn" onclick="toggleCensorBtn('${card.id}')">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            Pass
+                        </button>
+                    </div>
+                `; // <p class="text-xs font-bold text-slate-500 uppercase tracking-tighter">${card.id} Style</p>
+                prefContainer.appendChild(cardEl);
+            });
+        }
+
+        // --- CORE LOGIC: CATEGORY EXCLUSION ---
+        function toggleCensorBtn(id) {
+            if (isSubmitted) return;
+            const card = document.getElementById(id);
+            const btn = card.querySelector('.no-thanks-btn');
+            const isNowCensored = !card.classList.contains('censored');
+            
+            if (isNowCensored) {
+                card.classList.add('censored');
+                btn.classList.add('active');
+                detailPrefs[id] = 'Pass';
+            } else {
+                card.classList.remove('censored');
+                btn.classList.remove('active');
+                delete detailPrefs[id];
+            }
+        }
+
+        // --- CORE LOGIC: SUB-PREFERENCE TOGGLE ---
+        function togglePref(btn, val) {
+            if (isSubmitted) return;
+            const container = btn.parentElement;
+            const cardId = container.closest('.pref-card').id;
+            
+            if (btn.classList.contains('active')) {
+                btn.classList.remove('active');
+                delete detailPrefs[cardId];
+            } else {
+                container.querySelectorAll('.pref-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                detailPrefs[cardId] = val;
+            }
+        }
+
+        // --- CORE LOGIC: NAVIGATION & FLOW ---
+        function nextStep(idx) {
+            if (currentStep === 0 && idx === 1 && !document.getElementById('userName').value.trim()) {
+                showInlineError("Please enter your name.");
+                return;
+            }
+            
+            currentStep = idx;
+            stepWrapper.style.transform = `translateX(-${idx * 100}vw)`;
+            
+            document.querySelectorAll('.progress-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === idx);
+            });
+
+            const page = document.querySelectorAll('.step-page')[idx];
+            if (page) page.scrollTop = 0;
+            document.getElementById('progressBar').classList.toggle('hidden', idx === 5);
+        }
+
+        // --- UI UTILITY: ERROR FEEDBACK ---
+        function showInlineError(msg) {
+            const btn = document.querySelectorAll('.step-page')[currentStep].querySelector('button:last-child');
+            const orig = btn.innerText;
+            btn.innerText = msg;
+            btn.classList.add('bg-rose-600');
+            setTimeout(() => {
+                btn.innerText = orig;
+                btn.classList.remove('bg-rose-600');
+            }, 2000);
+        }
+
+        // --- UI UTILITY: FILE HANDLING ---
+        imageInput.onchange = () => {
+            const file = imageInput.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    fileNameDisplay.textContent = "File too big (Max 5MB)";
+                    fileNameDisplay.classList.add('text-rose-400');
+                    imageInput.value = ""; 
+                } else {
+                    fileNameDisplay.textContent = `Attached: ${file.name}`;
+                    fileNameDisplay.classList.add('text-pink-400');
+                }
+            }
+        };
+
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = e => reject(e);
+        });
+
+        // --- LOGIC: BUZZFEED-STYLE TALLY SYSTEM ---
+        function calculateResult() {
+            const interests = Array.from(selectedChoices);
+            const title = document.getElementById('resultTitle');
+            const desc = document.getElementById('resultDesc');
+            const chips = document.getElementById('summaryChips');
+
+            let scores = {
+                sissy: 0, mommy: 0, masochist: 0, diapersexual: 0, cumbrained: 0, tfslut: 0, vanilla: 10,
+                masc: 0, femme: 0, dom: 0, sub: 0,
+                olfactophilia: 0, brat: 0, cockslut: 0, pet: 0, hypno_bait: 0, bad_ender: 0, drone: 0, monster_fucker: 0
+            };
+
+            // iterate over kinks and apply all scores for each
+            interests.forEach(i => {
+                if (i == "Furries") ;
+                if (i == "Humans") ;
+                if (i == "Kemonomimi") ;
+                if (i == "Monsters") scores.monster_fucker += 5;
+                if (i == "Clankers") { scores.drone += 1; scores.monster_fucker += 1; }
+                if (i == "Hypno") { scores.cumbrained += 2; scores.brat += 2; scores.hypno_bait += 6; }
+                if (i == "Sissification") scores.sissy += 5;
+                if (i == "Chastity") { scores.sissy += 2; scores.masochist += 1; }
+                if (i == "Pegging") { scores.sissy += 1; scores.diapersexual += -1; scores.cockslut += 1; }
+                if (i == "Petplay") { scores.tfslut += 3; scores.pet += 5; }
+                if (i == "Hyper") { scores.diapersexual += -1; scores.cumbrained += 2; scores.cockslut += 3; scores.monster_fucker += 1; }
+                if (i == "Musky") { scores.olfactophilia += 4; scores.cockslut += 1; scores.diapersexual += -1; }
+                if (i == "Bukkake") { scores.diapersexual += -1; scores.cumbrained += 6; scores.cockslut += 2; }
+                if (i == "Feet/Paws") { scores.olfactophilia += 1; scores.diapersexual += -1; }
+                if (i == "Public Use") { scores.masochist += 1; scores.cockslut += 1; }
+                if (i == "Diapers") { scores.sissy += 2; scores.mommy += 1; scores.diapersexual += 8; }
+                if (i == "Infantilisation") scores.diapersexual += 2;
+                if (i == "Watersports") { scores.masochist += 1; scores.diapersexual += 2; }
+                if (i == "Messing") scores.diapersexual += 2;
+                if (i == "Age Regression") { scores.diapersexual += 2; scores.hypno_bait += 1; scores.bad_ender += 1; }
+                if (i == "Feral") { scores.tfslut += 3; scores.pet += 3; scores.bad_ender += 1; scores.monster_fucker += 1; }
+                if (i == "Inanimate") { scores.tfslut += 3; scores.bad_ender += 2; }
+                if (i == "Sizeplay") { scores.tfslut += 2; scores.monster_fucker += 1; }
+                if (i == "Weight Gain") { scores.tfslut += 1; scores.diapersexual += -1; }
+                if (i == "Absorption") { scores.diapersexual += -1; scores.tfslut += 3; scores.bad_ender += 2; }
+                if (i == "Dronification") { scores.hypno_bait += 1; scores.bad_ender += 2; scores.drone += 5; scores.tfslut += 1; }
+                if (i == "Identity Death") { scores.cumbrained += 2; scores.hypno_bait += 1; scores.bad_ender += 3; scores.drone += 3; }
+                if (i == "Vore") { scores.masochist += 1; scores.bad_ender += 2; scores.monster_fucker += 1; }
+                if (i == "Oviposition") { scores.diapersexual += -1; scores.monster_fucker += 1; }
+                if (i == "Ear Penetration") { scores.diapersexual += -1; scores.cumbrained += 2; scores.cockslut += 1; }
+                if (i == "Degradation") scores.masochist += 3;
+                if (i == "Noncon") { scores.masochist += 2; scores.brat += 5; scores.bad_ender += 1; }
+                if (i == "Physical Abuse") scores.masochist += 3;
+                if (i == "Farting") { scores.masochist += 1; scores.olfactophilia += 3; }
+                if (i == "Ballbusting") scores.masochist += 4;
+            });
+
+            const prefScores = {
+                "FneutMneut": {
+                    "Left": {"femme": 4},
+                    "Right": {"masc": 4}
+                },
+                "FdomMsub": {
+                    "Left": {"femme": 2, "dom": 3, "mommy": 3, "diapersexual": -1},
+                    "Right": {"masc": 1, "sub": 2, "monster_fucker": 1, "diapersexual": -1}
+                },
+                "MdomFsub": {
+                    "Left": {"masc": 3, "dom": 2, "diapersexual": -1},
+                    "Right": {"femme": 2, "sub": 2, "cockslut": 2, "diapersexual": -1, "cumbrained": 1}
+                },
+                "RimHead": {
+                    "Left": {},
+                    "Right": {"cockslut": 3}
+                },
+                "MdomMsub": {
+                    "Left": {"masc": 2, "dom": 4, "diapersexual": -1},
+                    "Right": {"sub": 3, "diapersexual": -1, "masc": 3}
+                },
+                "FdomFsub": {
+                    "Left": {"dom": 3, "mommy": 2, "femme": 2},
+                    "Right": {"sub": 4, "femme": 2}
+                },
+                "MessySniff": {
+                    "Left": {"diapersexual": 2},
+                    "Right": {"olfactophilia": 2, "diapersexual": 2}
+                },
+                "BratMommy": {
+                    "Left": {"sissy": 3, "brat": 2, "diapersexual": 2},
+                    "Right": {"diapersexual": 2}
+                },
+                "MommyBaby": {
+                    "Left": {"dom": 1, "mommy": 2, "diapersexual": 1},
+                    "Right": {"sub": 4, "sissy":3, "diapersexual": 2}
+                },
+                "FpegMpeg": {
+                    "Left": {"dom": 4, "mommy": 3},
+                    "Right": {"sub": 2, "diapersexual": -1}
+                },
+                "DroneSub": {
+                    "Left": {"dom": 2, "hypno_bait": 1, "drone": 1},
+                    "Right": {"sub": 2, "cumbrained": 2, "hypno_bait": 2}
+                },
+                "SalazSub": {
+                    "Left": {"femme": 2, "dom": 3, "mommy": 2},
+                    "Right": {"sub": 1, "hypno_bait": 2, "monster_fucker": 2, "olfactophilia": 2, "masc": 2}
+                },
+                "ButtSniffer": {
+                    "Left": {"dom": 2, "mommy": 2, "diapersexual": -1},
+                    "Right": {"sub": 3, "olfactophilia": 2, "diapersexual": -1}
+                },
+                "OwnerPet": {
+                    "Left": {"dom": 2, "mommy": 2},
+                    "Right": {"sub": 3, "pet": 2, "brat": 2}
+                }
+            };
+
+
+            for (let id in detailPrefs) {
+                let answer = detailPrefs[id]; // This will be "Left", "Right", or "Pass"
+
+                if (prefScores[id] && prefScores[id][answer]) {
+                    let points = prefScores[id][answer];
+                    for (let category in points) {
+                        scores[category] += points[category];
+                    }
+                }
+            }
+
+            // 1. Generate Metadata Chips
+            let chipHTML = "";
+
+            // Presentation Alignment
+            if (scores.masc >= scores.femme + 3) {
+                chipHTML += `<span class="px-3 py-1 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-full text-xs font-bold uppercase tracking-widest">Masculine</span>`;
+            } else if (scores.femme >= scores.masc + 3) {
+                chipHTML += `<span class="px-3 py-1 bg-pink-500/10 text-pink-300 border border-pink-500/20 rounded-full text-xs font-bold uppercase tracking-widest">Feminine</span>`;
+            }
+
+            // Dynamic Power Dynamic Alignment
+            if (scores.dom >= scores.sub + 3) {
+                chipHTML += `<span class="px-3 py-1 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-full text-xs font-bold uppercase tracking-widest">Dom</span>`;
+            } else if (scores.sub >= scores.dom + 3) {
+                chipHTML += `<span class="px-3 py-1 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-full text-xs font-bold uppercase tracking-widest">Sub</span>`;
+            } else  if (scores.sub >= 10) {
+                chipHTML += `<span class="px-3 py-1 bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-full text-xs font-bold uppercase tracking-widest">Switch</span>`;
+            }
+
+            // Trait Thresholds (10+)
+            const traitsToTrack = [
+                { id: 'olfactophilia', label: 'Olfactophilia' },
+                { id: 'brat', label: 'Brat' },
+                { id: 'cockslut', label: 'Cockslut' },
+                { id: 'pet', label: 'Pet' },
+                { id: 'hypno_bait', label: 'Hypno Bait' },
+                { id: 'bad_ender', label: 'Bad Ender' },
+                { id: 'drone', label: 'Drone' },
+                { id: 'monster_fucker', label: 'Monster Fucker' }
+            ];
+
+            traitsToTrack.forEach(trait => {
+                if (scores[trait.id] >= 10) {
+                    chipHTML += `<span class="px-3 py-1 bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full text-xs font-black uppercase tracking-tighter shadow-sm shadow-sky-500/20">${trait.label}</span>`;
+                }
+            });
+            
+            chips.innerHTML = chipHTML || '<span class="text-slate-500 text-xs italic">Neutral profile detected.</span>';
+
+            // 2. Score Archetypes
+
+            const winner = Object.keys(scores).filter(
+                k => !['masc', 'femme', 'dom', 'sub', 'olfactophilia', 'brat', 'cockslut', 'pet',
+                'hypno_bait', 'bad_ender', 'drone', 'monster_fucker'].includes(k)
+                ).reduce((a, b) => scores[a] > scores[b] ? a : b);
+
+            const archetypes = {
+                sissy: { t: "The Sissy Baby", d: "You're the prettiest, poofiest girl in any room you waddle into. If you have a peen, it's locked up 24/7." },
+                mommy: { t: "The Dommy Mommy", d: "You enjoy holding power over others, feeling them worship you. Subs adore you and crave your attention." },
+                masochist: { t: "The Masochist", d: "You love being used. Whether physically or verbally, it gets you off to be treated like a toy." },
+                diapersexual: { t: "The Diapersexual", d: "You need your diapers. None of that silly grownup sex stuff for you, only diaper." },
+                cumbrained: { t: "The Cumbrains", d: "Your brains are mush. You prefer being a swirly-eyed cumguzzler than a real person with thoughts." },
+                tfslut: { t: "The TF Slut", d: "Your body and brain are like putty. You change form as often as you change clothes." },
+                vanilla: { t: "The Vanilla", d: "You are sweet and pure. Well, not really, but you don't suit any of the other categories!" }
+            };
+
+            title.innerText = archetypes[winner].t;
+            desc.innerText = archetypes[winner].d;
+
+            return scores;
+        }
+
+        // --- NETWORK: DATA SUBMISSION ---
+        async function handleActualSubmit() {
+            closeModal();
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loader !border-t-white"></div> Sending...';
+
+            const finalScores = calculateResult();
+
+            const scoreString = Object.entries(finalScores)
+                .map(([key, val]) => `${key}: ${val}`)
+                .join(', ');
+
+            const payload = {
+                forceMulti: forceMultiplier,
+                userName: document.getElementById('userName').value,
+                interests: `${Array.from(selectedChoices).join(', ')}`,
+                writtenInterests: document.getElementById('interestWriteIn').value,
+                stylePreferences: Object.entries(detailPrefs)
+                    .map(([id, val]) => `${id}: ${val}`)
+                    .join(' | '),
+                qDom: document.getElementById('qDom').value,
+                qHorny: document.getElementById('qHorny').value,
+                qThicc: document.getElementById('qThicc').value,
+                qFriends: document.getElementById('qFriends').value,
+                feedback: document.getElementById('feedback').value,
+                scores: scoreString
+            };
+
+            const file = imageInput.files[0];
+            if (file) {
+                payload.imageFile = await toBase64(file);
+                payload.imageName = file.name;
+            }
+
+            try {
+                await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+                nextStep(5);
+                setTimeout(() => {
+                    document.getElementById('resultLoader').classList.add('hidden');
+                    document.getElementById('resultDisplay').classList.remove('hidden');
+                }, 1800);
+                isSubmitted = true;
+            } catch (err) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "Submit Entry";
+            }
+        }
+ 
+        // --- APP INITIALIZATION ---
+        function closeModal() { modal.classList.add('hidden'); }
+        form.addEventListener('submit', (e) => { e.preventDefault(); modal.classList.remove('hidden'); });
+
+        window.onload = () => {
+            updatePrefCards(); 
+            if (scriptURL.includes('REPLACE')) document.getElementById('configWarning').classList.remove('hidden');
+        };
+    </script>
+</body>
+</html>
